@@ -17,8 +17,9 @@ func dataSourceAwsDbInstance() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"db_instance_identifier": {
 				Type:     schema.TypeString,
-				Required: true,
+				Required: false,
 			},
+			"filter": dataSourceFiltersSchema(),
 
 			"tags": tagsSchemaComputed(),
 
@@ -219,8 +220,14 @@ func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).rdsconn
 	ignoreTagsConfig := meta.(*AWSClient).IgnoreTagsConfig
 
-	opts := &rds.DescribeDBInstancesInput{
-		DBInstanceIdentifier: aws.String(d.Get("db_instance_identifier").(string)),
+	opts := &rds.DescribeDBInstancesInput{}
+
+	if v, ok := d.GetOk("db_instance_identifier"); ok {
+		opts.DBInstanceIdentifier = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("filter"); ok {
+		opts.Filters = buildAwsDataSourceFilters(v.(*schema.Set))
 	}
 
 	log.Printf("[DEBUG] Reading DB Instance: %s", opts)
